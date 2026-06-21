@@ -39,18 +39,64 @@ no network calls at all.
 React 19 · Vite · `@anthropic-ai/sdk` (runtime model `claude-haiku-4-5`,
 browser BYOK) · `react-markdown` + `remark-gfm` · Vitest · ESLint.
 
-## Run it
+## Getting started
+
+### Prerequisites
+
+- **Node.js 18+** and npm (check with `node -v`). Get it from
+  [nodejs.org](https://nodejs.org).
+- An **Anthropic API key** for the chat feature — create one at
+  [console.anthropic.com](https://console.anthropic.com). The projection charts and
+  knowledge base work without a key; only the assistant needs it.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/CPF-planner.git
+cd CPF-planner
+```
+
+> Replace `<your-username>` with the repo owner. If you use SSH:
+> `git clone git@github.com:<your-username>/CPF-planner.git`
+
+### 2. Install dependencies
 
 ```bash
 npm install
-npm run dev      # start the app
-npm test         # sanitiser + knowledge-base unit tests
-npm run lint     # eslint
-npm run build    # production build
 ```
 
-Bring your own Anthropic API key — paste it into the chat panel. It is stored only
-in `sessionStorage` (cleared when the tab closes) and used directly from the browser.
+### 3. Run the app (development)
+
+```bash
+npm run dev
+```
+
+Vite prints a local URL (typically <http://localhost:5173>). Open it in your browser.
+The dev server has hot-reload, so edits appear instantly.
+
+### 4. Use it
+
+1. Enter your CPF balances (OA / SA / MA), age, and optionally income — projections
+   render immediately, entirely in your browser.
+2. To ask the assistant, paste your Anthropic API key into the chat panel. **No `.env`
+   or config file is needed** — the key is held only in `sessionStorage` (cleared when
+   the tab closes) and sent straight from your browser to Anthropic. Only anonymised
+   ranges of your balances are ever transmitted.
+
+### Other commands
+
+```bash
+npm test         # run unit tests (sanitiser + knowledge base)
+npm run lint     # eslint
+npm run build    # production build → dist/
+npm run preview  # serve the production build locally
+```
+
+### Deploying
+
+`npm run build` outputs a static site to `dist/`, which you can host on any static
+host (GitHub Pages, Netlify, Vercel, Cloudflare Pages, etc.). There is no backend and
+no server-side secret — the API key is supplied per-user in the browser at runtime.
 
 ---
 

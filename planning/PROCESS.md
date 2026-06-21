@@ -59,11 +59,37 @@ in the knowledge base, misidentify it as a leaked personal balance, and abort
 the request.
 * Some numerical figures in the knowledge base were not precise. Identified and corrected 
 inaccurate figures in `cpfRules.js` that had been generated during the initial scaffold.
-* Illegitimate website URLs presented in generated responses as references. Fixed it to only reference sources 
-found in knowledge base. 
+* Illegitimate website URLs presented in generated responses as references. 
 
-*Refactoring*
-[Fill in — e.g. if you collapsed components, changed state management approach]
+## Iteration history (fixes & refinements)
+
+1. **Initial build** — sanitiser, KB, BYOK Claude chat, local projection panel,
+   privacy guard, transparency panel; Vitest tests for the sanitiser.
+2. **KB expansion to life events** — researched CPF educational resources and added
+   the seven life-stage categories with sourced facts; redesigned the UI to a clean,
+   editorial light theme (serif headings, line-art icons, life-stage explorer) with
+   richer charts.
+3. **BTO scheme** — added a "Buying a BTO flat" life event scoped to where **CPF is
+   usable as payment**: income ceilings (grant gating), Enhanced CPF Housing Grant
+   eligibility, downpayment payable from OA (HDB vs bank loan), Staggered Downpayment
+   Scheme, OA-paid instalments.
+4. **Calculator tool — added then I removed** — Remembered that the model since ranges
+    instead of exact dollar values so I removed it. Computation is now handled by the model 
+    reasoning in **band midpoints** and stating which approximation it used (honest, since it never holds exact
+   figures).
+5. **Chat UX** — "New chat" / clear-session control; proper **Markdown rendering**
+   of replies (`react-markdown` + `remark-gfm`); a collapsible **glossary** card.
+6. **Privacy-guard false positive** — the guard had scanned the entire payload,
+   including the public KB, so a user balance equal to a public CPF figure (e.g.
+   $7,000) wrongly aborted the request. Fixed by scoping the guard to the sanitised
+   profile block only.
+7. **Legitimate citations** — links the model emitted were broken or hallucinated,
+   and several KB URLs were stale/non-official. Fixed by: curating `SOURCES` to
+   **verified official-only** URLs (each WebFetch-checked for HTTP 200), removing
+   URLs from the model's context and forbidding it from writing links, and instead
+   having the **app attach citations deterministically** via `collectSources()` —
+   rendered as an "Official sources" list under each answer. A test asserts every
+   source is HTTPS on an official domain (`cpf.gov.sg`/`hdb.gov.sg`/`moh.gov.sg`).
 
 ---
 
@@ -88,7 +114,7 @@ significant complexity (PDF parsing libraries, local file handling) without
 meaningfully demonstrating the core architecture.
 
 *Live CPF API integration*— CPF Board does not offer a public API for 
-individual account data.
+individual account data. Relying on some articles on 2026 rates for this build.
 
 *Vector database / semantic search* — a production version might embed CPF 
 policy documents and retrieve relevant chunks per query. Replaced with a 
@@ -109,21 +135,45 @@ CPF interest rates and retirement sum values are updated periodically, and there
 is currently no mechanism to detect or reflect those live, abrupt changes. A user relying on 
 outdated figures could make poor planning decisions.
 
-**Next improvements:**
+---
 
-1. **Rules versioning** — tag the knowledge base with a `lastUpdated` date and 
-   surface a visible warning in the UI if it is more than 6 months old.
+## Architecture
 
-2. **Local PDF extraction** — build a Python script that runs entirely on the 
-   user's machine, parses their CPF statement PDF, and outputs a sanitised JSON 
-   file that the app can ingest. This would remove the manual balance entry 
-   step without introducing any cloud data exposure.
+```
+BalanceInput ─┐                    (raw numbers stay in React state only)
+              ├─► profile {oa,sa,ma,age,income} ─► projection.js (local math) ─► ProjectionPanel
+              │                                                  (charts, milestones — no LLM)
+              ├─► LifeEvents ── ask(question) ──► ChatInterface
+              └─► ChatInterface
+                      │ on send
+                      ▼
+                 sanitiser.js  (amounts → bands)  +  cpfRules.js (KB)
+                      │
+                      ▼  anonymised payload only
+                 claudeClient.js (BYOK, dangerouslyAllowBrowser)
+                      │
+                      ▼
+                 Claude (claude-haiku-4-5) ─► answer + app-attached official sources
+```
 
-3. **Projection accuracy** — current projections use simplified compound 
-   interest logic and do not account for the OA-to-SA transfer rules, CPF LIFE 
-   payout estimates, or HDB loan interactions. A more complete financial model 
-   would handle these.
 
-4. **Evaluation layer** — add a small test suite that checks the sanitiser 
-   against edge cases (e.g. amounts at range boundaries, zero balances, 
-   non-numeric inputs) to give confidence that no raw figures leak through.
+## Project layout
+
+```
+src/
+  data/cpfRules.js        # knowledge base: SOURCES, cpfRules, LIFE_EVENTS, GLOSSARY,
+                          # buildRulesContext, selectRelevantSections, collectSources
+  utils/
+    sanitiser.js          # toBand, sanitiseProfile, assertNoRawAmounts (+ tests)
+    projection.js         # local compound-interest projection
+    claudeClient.js       # BYOK Claude wrapper, system prompt, askCPF
+  components/
+    BalanceInput.jsx      # OA/SA/MA/age/income form
+    ProjectionPanel.jsx   # charts + milestones (local, no network)
+    LifeEvents.jsx        # life-stage explorer; hands questions to the chat
+    ChatInterface.jsx     # chat, key entry, markdown, sources, transparency
+    Glossary.jsx          # CPF abbreviations
+    icons.jsx             # line-art icon set
+  App.jsx, App.css, index.css
+```
+
