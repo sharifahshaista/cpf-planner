@@ -222,3 +222,10 @@ src/
   App.jsx  App.css  index.css
 planning/PROCESS.md       # design notes & development journal
 ```
+
+Edit 2/7/2026: 
+Added Claude CPF statement parsing agent. Extracted JSON data from statement converted to ranges when attached to chatbot for further user querying. 
+
+https://github.com/user-attachments/assets/e51ac194-7aac-4a7c-bc76-91e7529f98ab
+
+
