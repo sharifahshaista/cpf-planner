@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import BalanceInput from './components/BalanceInput.jsx'
+import FileUpload from './components/FileUpload.jsx'
 import ProjectionPanel from './components/ProjectionPanel.jsx'
 import LifeEvents from './components/LifeEvents.jsx'
 import ChatInterface from './components/ChatInterface.jsx'
@@ -23,6 +24,9 @@ function App() {
   })
   const [remember, setRemember] = useState(() => !!localStorage.getItem(STORAGE_KEY))
   const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('cpf-planner:key') ?? '')
+  // A parsed statement the user chose to attach to the chat. Held raw in memory
+  // only; ChatInterface sanitises it into bands before any request goes out.
+  const [attachedDoc, setAttachedDoc] = useState(null)
   const chatRef = useRef(null)
 
   useEffect(() => {
@@ -34,6 +38,20 @@ function App() {
     setApiKey(key)
     if (key) sessionStorage.setItem('cpf-planner:key', key)
     else sessionStorage.removeItem('cpf-planner:key')
+  }
+
+  // Copy parsed statement figures into the balance form. RA has no form field;
+  // it is preserved on the attached document for the chat instead.
+  function fillProfileFromDoc(doc) {
+    const { oa, sa, ma } = doc.accounts
+    setProfile((p) => ({
+      ...p,
+      oa: oa != null ? String(oa) : p.oa,
+      sa: sa != null ? String(sa) : p.sa,
+      ma: ma != null ? String(ma) : p.ma,
+      age: doc.age != null ? String(doc.age) : p.age,
+      income: doc.income != null ? String(doc.income) : p.income,
+    }))
   }
 
   function askAssistant(question) {
@@ -70,6 +88,12 @@ function App() {
             remember={remember}
             onRememberChange={setRemember}
           />
+          <FileUpload
+            onFillProfile={fillProfileFromDoc}
+            onAttach={setAttachedDoc}
+            attached={!!attachedDoc}
+            apiKey={apiKey}
+          />
           <ProjectionPanel profile={profile} />
           <Glossary />
         </div>
@@ -78,6 +102,8 @@ function App() {
           <ChatInterface
             ref={chatRef}
             profile={profile}
+            attachedDoc={attachedDoc}
+            onClearAttachedDoc={() => setAttachedDoc(null)}
             apiKey={apiKey}
             onApiKeyChange={handleApiKey}
           />

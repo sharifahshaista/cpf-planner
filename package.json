@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sample:pdf": "node scripts/generate-sample-statement.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",

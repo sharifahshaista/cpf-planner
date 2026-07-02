@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { toBand, sanitiseProfile, assertNoRawAmounts, BANDS } from './sanitiser.js'
+import {
+  toBand,
+  sanitiseProfile,
+  sanitiseDocument,
+  assertNoRawAmounts,
+  BANDS,
+} from './sanitiser.js'
 
 describe('toBand', () => {
   it('maps amounts into the correct band', () => {
@@ -45,6 +51,51 @@ describe('sanitiseProfile', () => {
     const out = sanitiseProfile({ oa: 10000, sa: 0, ma: 0 })
     expect(out.incomeBand).toBeNull()
     expect(out.age).toBeNull()
+  })
+})
+
+describe('sanitiseDocument', () => {
+  const doc = {
+    accounts: { oa: 82000, sa: 61500, ma: 45250, ra: 0 },
+    totalBalance: 188750,
+    income: 6000,
+    age: 42,
+    statementDate: '30 Jun 2026',
+    contributions: [
+      { date: '15/04/2026', amount: 1110 },
+      { date: '15/05/2026', amount: 1110 },
+      { date: '15/06/2026', amount: 1250 },
+    ],
+  }
+
+  it('bands every dollar figure and drops day-level date precision', () => {
+    const out = sanitiseDocument(doc)
+    expect(out.oaBand).toBe('$50k–$100k')
+    expect(out.saBand).toBe('$50k–$100k')
+    expect(out.maBand).toBe('$20k–$50k')
+    expect(out.raBand).toBe('under $20k')
+    expect(out.totalBand).toBe('$150k–$220k')
+    expect(out.incomeBand).toBe('under $20k')
+    expect(out.age).toBe(42)
+    expect(out.statementPeriod).toBe('Jun 2026')
+    expect(out.contributionCount).toBe(3)
+    expect(out.latestContributionBand).toBe('under $20k')
+  })
+
+  it('never leaks a raw figure from the document', () => {
+    const serialised = JSON.stringify(sanitiseDocument(doc))
+    for (const raw of ['82000', '61500', '45250', '188750', '6000', '1110', '1250']) {
+      expect(serialised).not.toContain(raw)
+    }
+  })
+
+  it('handles a sparse document without throwing', () => {
+    const out = sanitiseDocument({ accounts: { oa: 10000 } })
+    expect(out.oaBand).toBe('under $20k')
+    expect(out.saBand).toBe('unknown')
+    expect(out.raBand).toBeNull()
+    expect(out.statementPeriod).toBeNull()
+    expect(out.contributionCount).toBe(0)
   })
 })
 

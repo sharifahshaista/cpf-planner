@@ -31,7 +31,7 @@ export function createClient(apiKey) {
 // text we derive from the user's raw numbers, so it's what the leak guard
 // inspects. (The knowledge base holds public dollar figures that may coincide
 // with a user's balance and must NOT be guarded against.)
-function buildUserContent({ sanitisedProfile, rulesContext, question }) {
+function buildUserContent({ sanitisedProfile, sanitisedDocument, rulesContext, question }) {
   const profileBlock = [
     'My CPF position (anonymised ranges):',
     `- Ordinary Account: ${sanitisedProfile.oaBand}`,
@@ -44,28 +44,68 @@ function buildUserContent({ sanitisedProfile, rulesContext, question }) {
     .filter(Boolean)
     .join('\n')
 
-  const content = `${profileBlock}\n\n${rulesContext}\n\nQuestion: ${question}`
-  return { content, profileBlock }
+  // Optional block derived from an uploaded statement. It is ALREADY sanitised
+  // (dollar figures banded, PII dropped) by `sanitiseDocument`, so it carries the
+  // same privacy guarantees as the profile block and passes the leak guard.
+  const documentBlock = sanitisedDocument
+    ? [
+        'From my uploaded CPF statement (anonymised ranges):',
+        `- Ordinary Account: ${sanitisedDocument.oaBand}`,
+        `- Special Account: ${sanitisedDocument.saBand}`,
+        `- MediSave Account: ${sanitisedDocument.maBand}`,
+        sanitisedDocument.raBand ? `- Retirement Account: ${sanitisedDocument.raBand}` : null,
+        `- Total: ${sanitisedDocument.totalBand}`,
+        sanitisedDocument.incomeBand ? `- Monthly wage: ${sanitisedDocument.incomeBand}` : null,
+        sanitisedDocument.age != null ? `- Age: ${sanitisedDocument.age}` : null,
+        sanitisedDocument.statementPeriod
+          ? `- Statement period: ${sanitisedDocument.statementPeriod}`
+          : null,
+        sanitisedDocument.contributionCount
+          ? `- Contribution entries on statement: ${sanitisedDocument.contributionCount}`
+          : null,
+        sanitisedDocument.latestContributionBand
+          ? `- Latest contribution: ${sanitisedDocument.latestContributionBand}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : null
+
+  const content = [profileBlock, documentBlock, rulesContext, `Question: ${question}`]
+    .filter(Boolean)
+    .join('\n\n')
+  return { content, profileBlock, documentBlock }
 }
 
 // Ask a CPF question. `rawProfile` is passed ONLY to the leak guard so we can
 // assert no exact figure slipped into the outgoing request.
-export async function askCPF({ apiKey, sanitisedProfile, rawProfile, question, history = [] }) {
+export async function askCPF({
+  apiKey,
+  sanitisedProfile,
+  sanitisedDocument = null,
+  rawProfile,
+  question,
+  history = [],
+}) {
   if (!apiKey) throw new Error('Missing Anthropic API key.')
 
   const selection = selectRelevantSections(question)
   const rulesContext = buildRulesContext(selection)
-  const { content: userContent, profileBlock } = buildUserContent({
+  const { content: userContent, profileBlock, documentBlock } = buildUserContent({
     sanitisedProfile,
+    sanitisedDocument,
     rulesContext,
     question,
   })
 
-  // Privacy gate: the profile block is the ONLY text we generate from the user's
-  // raw numbers. Verify our sanitisation emitted no exact amount. We deliberately
-  // do not scan the public knowledge base — its dollar figures may legitimately
-  // match a user's balance and would otherwise cause false-positive aborts.
+  // Privacy gate: the profile and document blocks are the ONLY text we generate
+  // from the user's raw numbers. Verify our sanitisation emitted no exact amount.
+  // We deliberately do not scan the public knowledge base — its dollar figures may
+  // legitimately match a user's balance and would otherwise cause false-positive
+  // aborts. The document block is banded by `sanitiseDocument`; guarding it here
+  // is a defence-in-depth check that the banding held.
   assertNoRawAmounts(profileBlock, rawProfile)
+  if (documentBlock) assertNoRawAmounts(documentBlock, rawProfile)
 
   const messages = [
     ...history.map((m) => ({ role: m.role, content: m.content })),

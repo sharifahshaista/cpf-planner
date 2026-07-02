@@ -130,6 +130,39 @@ button.link {
   display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.83rem;
 }
 button.link:hover { text-decoration: underline; }
+button.secondary { background: var(--surface-2); color: var(--primary-ink); border: 1px solid var(--line-strong); }
+button.secondary:hover { background: var(--primary-wash); border-color: var(--primary); }
+
+/* Upload / PDF parsing */
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.5rem; text-align: center;
+  border: 1.5px dashed var(--line-strong); border-radius: 12px;
+  background: var(--surface-2); color: var(--muted);
+  padding: 1.6rem 1rem; cursor: pointer; font-size: 0.88rem;
+}
+.dropzone:hover, .dropzone.dragging { border-color: var(--primary); background: var(--primary-wash); color: var(--primary-ink); }
+.dropzone svg { color: var(--primary); }
+
+.parsed { display: flex; flex-direction: column; gap: 0.7rem; }
+.parsed-head { display: flex; align-items: center; justify-content: space-between; }
+.parsed-file { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--ink-soft); font-weight: 500; }
+.parsed-figures { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.parsed-figures td { padding: 0.32rem 0; border-bottom: 1px solid var(--line); }
+.parsed-figures td:first-child { color: var(--muted); }
+.parsed-figures td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.parsed-figures .parsed-total td { font-weight: 700; color: var(--primary-ink); border-bottom: none; }
+.parsed .warn { color: var(--mid); }
+.parsed-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.parsed-actions button { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+.attached-doc {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin-bottom: 0.8rem; padding: 0.5rem 0.7rem;
+  background: var(--primary-wash); border: 1px solid var(--primary-wash);
+  border-radius: 8px; font-size: 0.82rem; color: var(--primary-ink);
+}
+.attached-doc span { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 /* Projection */
 .empty-hint { color: var(--muted); font-style: italic; font-size: 0.9rem; }

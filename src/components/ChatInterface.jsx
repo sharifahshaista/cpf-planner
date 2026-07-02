@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Icon from './icons.jsx'
-import { sanitiseProfile } from '../utils/sanitiser.js'
+import { sanitiseProfile, sanitiseDocument } from '../utils/sanitiser.js'
 import { askCPF } from '../utils/claudeClient.js'
 
 // Chat with Claude over the SANITISED profile. The API key lives in sessionStorage
@@ -16,7 +16,7 @@ const STARTERS = [
 ]
 
 const ChatInterface = forwardRef(function ChatInterface(
-  { profile, apiKey, onApiKeyChange },
+  { profile, attachedDoc, onClearAttachedDoc, apiKey, onApiKeyChange },
   ref,
 ) {
   const [messages, setMessages] = useState([])
@@ -42,9 +42,13 @@ const ChatInterface = forwardRef(function ChatInterface(
     setLoading(true)
     try {
       const sanitised = sanitiseProfile(profile)
+      // Attached statement is banded (and PII-stripped) here, before it can reach
+      // the request — same privacy contract as the profile.
+      const sanitisedDocument = attachedDoc ? sanitiseDocument(attachedDoc) : null
       const { text, sources, sentPayload } = await askCPF({
         apiKey,
         sanitisedProfile: sanitised,
+        sanitisedDocument,
         rawProfile: profile,
         question: q,
         history,
@@ -96,6 +100,17 @@ const ChatInterface = forwardRef(function ChatInterface(
           </button>
         )}
       </div>
+
+      {attachedDoc && (
+        <div className="attached-doc">
+          <span>
+            <Icon name="file" size={13} /> Statement attached — sent as anonymised ranges only.
+          </span>
+          <button className="link" onClick={onClearAttachedDoc}>
+            Remove
+          </button>
+        </div>
+      )}
 
       <div className="messages">
         {messages.length === 0 && (

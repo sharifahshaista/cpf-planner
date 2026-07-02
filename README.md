@@ -21,6 +21,14 @@ no network calls at all.
 
 - **Balance input** — enter OA / SA / MA, age, and (optionally) income. Values
   stay in the browser; persistence to `localStorage` is opt-in.
+- **Upload a CPF statement (PDF)** — a Claude parsing agent reads a statement PDF
+  and extracts key figures — account balances, total, wage, age, statement date,
+  contribution history — into structured JSON (via the Anthropic PDF + structured-
+  outputs API). Parsing sends the PDF to Anthropic (a disclosed trade-off for
+  accurate long-form extraction); the extracted figures can fill the balance form,
+  or be attached to the chat as **anonymised ranges** (dollar figures banded, PII
+  dropped) so the assistant gets richer context without exact numbers reaching the
+  chat.
 - **Local projections** — a deterministic compound-interest model projects balances
   to ages 55/65 using CPF floor rates, with a stacked-area growth chart (and an FRS
   reference line), a current-allocation bar, a CPF LIFE payout comparison, and
@@ -36,8 +44,9 @@ no network calls at all.
 
 ## Tech stack
 
-React 19 · Vite · `@anthropic-ai/sdk` (runtime model `claude-haiku-4-5`,
-browser BYOK) · `react-markdown` + `remark-gfm` · Vitest · ESLint.
+React 19 · Vite · `@anthropic-ai/sdk` (browser BYOK; chat on `claude-haiku-4-5`,
+PDF parsing on `claude-opus-4-8` via base64 document input + structured outputs) ·
+`react-markdown` + `remark-gfm` · Vitest · ESLint.
 
 ## Getting started
 
@@ -90,6 +99,7 @@ npm test         # run unit tests (sanitiser + knowledge base)
 npm run lint     # eslint
 npm run build    # production build → dist/
 npm run preview  # serve the production build locally
+npm run sample:pdf  # (re)generate public/sample-cpf-statement.pdf for testing upload
 ```
 
 ### Deploying
@@ -164,9 +174,6 @@ prompt refactored so the model reasons in ranges instead.
 
 ## What was cut or simplified
 
-- **PDF statement parsing** — auto-extracting balances from a CPF statement PDF was
-  cut; it adds parsing/file-handling complexity without demonstrating the core
-  privacy architecture. (Manual entry is used instead.)
 - **Live CPF API** — the CPF Board offers no public API for individual account data.
 - **Vector DB / semantic retrieval** — replaced with a hardcoded structured knowledge
   base: sufficient for well-scoped planning queries and far easier to audit.
@@ -190,8 +197,10 @@ approximation (midpoint-based) rather than exact.
    when it is stale.
 2. **Projection accuracy** — model OA→RA transfer rules at 55, contributions past 55,
    extra-interest tiers, and HDB-loan interactions (the current model simplifies these).
-3. **Local PDF extraction** — an on-device script that parses a CPF statement and emits
-   sanitised JSON, removing manual entry without any cloud exposure.
+3. **PDF extraction privacy** — parsing currently sends the raw PDF to Anthropic. A
+   future option is an on-device pre-pass (local text extraction, or banding figures
+   before they leave the browser) for users who don't want the raw statement to leave
+   their machine — trading some extraction accuracy for stricter privacy.
 4. **Stronger evaluation** — broaden sanitiser/edge-case tests and add a periodic check
    that every cited source URL still resolves, so links can't silently rot.
 
@@ -203,11 +212,12 @@ approximation (midpoint-based) rather than exact.
 src/
   data/cpfRules.js        # knowledge base + routing (SOURCES, cpfRules, LIFE_EVENTS, GLOSSARY)
   utils/
-    sanitiser.js          # toBand, sanitiseProfile, assertNoRawAmounts (+ tests)
+    sanitiser.js          # toBand, sanitiseProfile, sanitiseDocument, assertNoRawAmounts (+ tests)
+    claudeParser.js       # Claude PDF parsing agent (base64 doc + structured JSON)
     projection.js         # local compound-interest projection
     claudeClient.js       # BYOK Claude wrapper, system prompt, askCPF
   components/
-    BalanceInput.jsx  ProjectionPanel.jsx  LifeEvents.jsx
+    BalanceInput.jsx  FileUpload.jsx  ProjectionPanel.jsx  LifeEvents.jsx
     ChatInterface.jsx  Glossary.jsx  icons.jsx
   App.jsx  App.css  index.css
 planning/PROCESS.md       # design notes & development journal

@@ -42,6 +42,46 @@ export function sanitiseProfile(profile = {}) {
   }
 }
 
+// Reduce a raw statement-date/period string to a NON-identifying period. We keep
+// at most the month and year (e.g. "Mar 2026" or "2026") and drop day-level
+// precision, which lowers identifiability while preserving recency context.
+function toPeriod(dateStr) {
+  if (!dateStr) return null
+  const monthYear = /([A-Za-z]{3,9})\s+([0-9]{4})/.exec(dateStr)
+  if (monthYear) return `${monthYear[1].slice(0, 3)} ${monthYear[2]}`
+  const year = /(20[0-9]{2})/.exec(dateStr)
+  return year ? year[1] : null
+}
+
+// Sanitise a document parsed by claudeParser into a banded, PII-free summary safe to
+// attach to a chat request. Every dollar figure becomes a band; identifying
+// free-text (NRIC, names, employers, exact dates) is deliberately DROPPED — only
+// bands, counts, an age, and a coarse period survive. This is what keeps the
+// "attach document context" feature consistent with the zero-retention contract.
+//
+// To instead send the raw figures (accepting that they leave the browser), a
+// caller would bypass this and inject `doc` directly — but the outgoing leak
+// guard would then reject it, by design.
+export function sanitiseDocument(doc = {}) {
+  const { accounts = {}, totalBalance, income, age, statementDate, contributions = [] } = doc
+  const amounts = contributions
+    .map((c) => Number(c?.amount))
+    .filter((n) => Number.isFinite(n) && n > 0)
+  const latestContribution = amounts.length ? amounts[amounts.length - 1] : null
+  return {
+    oaBand: toBand(accounts.oa),
+    saBand: toBand(accounts.sa),
+    maBand: toBand(accounts.ma),
+    raBand: accounts.ra == null ? null : toBand(accounts.ra),
+    totalBand: toBand(totalBalance),
+    incomeBand: income == null ? null : toBand(income),
+    age: age == null ? null : Number(age),
+    statementPeriod: toPeriod(statementDate),
+    contributionCount: contributions.length,
+    latestContributionBand: latestContribution == null ? null : toBand(latestContribution),
+  }
+}
+
 // Collect the raw numeric amounts from a profile (for the leak guard).
 function rawAmountsOf(profile = {}) {
   const { oa, sa, ma, income } = profile

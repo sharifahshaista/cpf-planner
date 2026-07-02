@@ -1,0 +1,80 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 796 >>
+stream
+BT
+/F1 11 Tf
+14 TL
+54 780 Td
+(Central Provident Fund Board) Tj
+T*
+(CPF Statement of Account) Tj
+T*
+(Statement as at 30 Jun 2026) Tj
+T*
+() Tj
+T*
+(Member: TAN WEI MING) Tj
+T*
+(Age 42) Tj
+T*
+() Tj
+T*
+(Account Balances) Tj
+T*
+(Ordinary Account \(OA\)        $82,000.00) Tj
+T*
+(Special Account \(SA\)         $61,500.00) Tj
+T*
+(MediSave Account \(MA\)        $45,250.00) Tj
+T*
+(Retirement Account \(RA\)      $0.00) Tj
+T*
+(Total Balance                $188,750.00) Tj
+T*
+() Tj
+T*
+(Ordinary Wage \(monthly\)      $6,000.00) Tj
+T*
+() Tj
+T*
+(Recent Contributions) Tj
+T*
+(15 Jun 2026   ACME PTE LTD     $1,110.00) Tj
+T*
+(15 May 2026   ACME PTE LTD     $1,110.00) Tj
+T*
+(15 Apr 2026   ACME PTE LTD     $1,110.00) Tj
+T*
+() Tj
+T*
+(This statement is for reference only. Verify figures at cpf.gov.sg.) Tj
+T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001088 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1158
+%%EOF
